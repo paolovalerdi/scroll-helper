@@ -1,8 +1,10 @@
 package dev.olog.scrollhelper.recycler.view
 
+import android.util.Log
 import androidx.core.math.MathUtils
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
+import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
 import dev.olog.scrollhelper.Hash
 import dev.olog.scrollhelper.ScrollHelper
 
@@ -48,7 +50,8 @@ internal class RecyclerViewListener(
 
         // update bottom navigation
         if (bottomNavigation != null &&
-            (bottomSheet == null || bottomSheet.behavior.state == STATE_COLLAPSED)) {
+            (bottomSheet == null || bottomSheet.behavior.state == STATE_COLLAPSED || bottomSheet.behavior.state == STATE_HIDDEN)
+        ) {
             val translation = MathUtils.clamp(
                 bottomNavigation.translationY + dy,
                 0f,
@@ -58,7 +61,7 @@ internal class RecyclerViewListener(
         }
 
         // update bottom sheet
-        if (bottomSheet != null && bottomSheet.behavior.state == STATE_COLLAPSED) {
+        if (bottomSheet != null && (bottomSheet.behavior.state == STATE_COLLAPSED || bottomSheet.behavior.state == STATE_HIDDEN)) {
             val bottomSheetView = bottomSheet.view
             val translation = MathUtils.clamp(
                 bottomSheetView.translationY + dy,
@@ -94,11 +97,20 @@ internal class RecyclerViewListener(
 
         // scroll toolbar
         if (toolbar != null) {
-            val translation = MathUtils.clamp(
-                toolbar.translationY - dy,
-                -maxTop,
-                0f
-            )
+            Log.d("TOOLBAR_TR", "Translating toolbar")
+            val translation = if (scrollHelper.toolbarHeight < scrollHelper.statusBarHeight) {
+                MathUtils.clamp(
+                    toolbar.translationY - dy,
+                    -((scrollHelper.toolbarHeight.toFloat() + scrollHelper.statusBarHeight) - scrollHelper.tabLayoutHeight),
+                    0f
+                )
+            } else {
+                MathUtils.clamp(
+                    toolbar.translationY - dy,
+                    -scrollHelper.toolbarHeight.toFloat(),
+                    0f
+                )
+            }
             toolbar.translationY = translation
         }
 
@@ -106,7 +118,7 @@ internal class RecyclerViewListener(
         if (tabLayout != null) {
             val translation = MathUtils.clamp(
                 tabLayout.translationY - dy,
-                -maxTop,
+                -toolbar?.height?.toFloat()!!,
                 0f
             )
             tabLayout.translationY = translation
