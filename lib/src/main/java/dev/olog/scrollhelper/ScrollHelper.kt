@@ -1,7 +1,11 @@
 package dev.olog.scrollhelper
 
+import android.util.SparseArray
 import android.view.View
+import androidx.core.util.forEach
+import androidx.core.view.doOnLayout
 import androidx.core.view.marginBottom
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
@@ -31,21 +35,31 @@ abstract class ScrollHelper(
     private val activity: FragmentActivity,
     internal val fullScrollTop: Boolean,
     internal val fullScrollBottom: Boolean,
-    private val toolbarHeight: Int = 0,
-    private val tabLayoutHeight: Int = 0,
+    val toolbarHeight: Int = 0,
+    val tabLayoutHeight: Int = 0,
     private val bottomSheetHeight: Int = 0,
     private val bottomNavigationHeight: Int = 0,
-    restoreState: Boolean = false
+    restoreState: Boolean = false,
+    val statusBar: View? = null
 ) : LifecycleCallback {
 
     private val callback = FragmentLifecycleMonitor(this)
 
-    internal val fabMap = mutableMapOf<Hash, View>()
+    internal val fabMap = SparseArray<View>()
     internal val tabLayoutMap = mutableMapOf<Hash, View>()
     internal val toolbarMap = mutableMapOf<Hash, View>()
     private val viewPagerCallbackMap = mutableMapOf<Hash, Any>()
 
     private val stateResetter = StateResetter(restoreState)
+
+    var statusBarHeight: Int = 0
+        set(value) {
+            field = value
+            statusBar?.translationY = -field.toFloat()
+            statusBar?.updateLayoutParams {
+                height = field
+            }
+        }
 
     internal val bottomNavigation by lazy(NONE) {
         findBottomNavigation().apply {
@@ -56,7 +70,7 @@ abstract class ScrollHelper(
         val view = findBottomSheet() ?: return@lazy null
         val behavior = BottomSheetBehavior.from(view)
         BottomSheetData(view, behavior, behavior.peekHeight).apply {
-            this.behavior.peekHeight = bottomNavigationHeight + bottomSheetHeight
+            this.behavior.peekHeight = bottomSheetHeight // bottomSheetHeight
             stateResetter.restoreActivity(view, BOTTOM_SHEET_STATE)
         }
     }
@@ -98,9 +112,13 @@ abstract class ScrollHelper(
         activity.lifecycle.addObserver(lifecycleListener)
     }
 
+    fun updatePeek(navigationHeight: Int) {
+        bottomSheet?.behavior?.peekHeight = bottomSheetHeight + navigationHeight
+    }
+
     override fun onFragmentViewCreated(fragment: Fragment) {
         val recyclerView = findRecyclerView(fragment)
-        val viewPager= findViewPager(fragment)
+        val viewPager = findViewPager(fragment)
 
         val fab = findFab(fragment)
         val toolbar = findToolbar(fragment)
@@ -118,7 +136,7 @@ abstract class ScrollHelper(
             if (fab != null) {
                 updateFabMargin(fragment, fab, secondBaseline)
                 stateResetter.restoreFab(bottomSheet, fab)
-                fabMap[hashCode] = fab
+                fabMap.append(hashCode, fab)
             }
 
             if (tabLayout != null) {
@@ -281,6 +299,19 @@ abstract class ScrollHelper(
             return value
         }
         return 0
+    }
+
+    fun hideNavigation(hide: Boolean) {
+        if (hide) {
+            val translation = bottomSheetHeight.toFloat()
+            bottomSheet?.view?.animate()?.translationY(translation)
+            bottomNavigation?.animate()?.translationY(translation)
+            fabMap.forEach { key, value -> value.animate().translationY(translation) }
+        } else {
+            bottomSheet?.view?.animate()?.translationY(0f)
+            bottomNavigation?.animate()?.translationY(0f)
+            fabMap.forEach { key, value -> value.animate().translationY(0f) }
+        }
     }
 
 }
