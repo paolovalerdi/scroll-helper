@@ -1,6 +1,5 @@
 package dev.olog.scrollhelper.recycler.view
 
-import android.util.Log
 import androidx.core.math.MathUtils
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
@@ -97,7 +96,6 @@ internal class RecyclerViewListener(
 
         // scroll toolbar
         if (toolbar != null) {
-            Log.d("TOOLBAR_TR", "Translating toolbar")
             val translation = if (scrollHelper.toolbarHeight < scrollHelper.statusBarHeight) {
                 MathUtils.clamp(
                     toolbar.translationY - dy,
@@ -110,6 +108,14 @@ internal class RecyclerViewListener(
                     -scrollHelper.toolbarHeight.toFloat(),
                     0f
                 )
+            }
+            scrollHelper.statusBar?.let {
+                val t = MathUtils.clamp(
+                    it.translationY + dy,
+                    -scrollHelper.statusBarHeight.toFloat(),
+                    0f
+                )
+                it.translationY = t
             }
             toolbar.translationY = translation
         }

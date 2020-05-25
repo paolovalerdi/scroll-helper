@@ -3,7 +3,9 @@ package dev.olog.scrollhelper
 import android.util.SparseArray
 import android.view.View
 import androidx.core.util.forEach
+import androidx.core.view.doOnLayout
 import androidx.core.view.marginBottom
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
@@ -37,7 +39,8 @@ abstract class ScrollHelper(
     val tabLayoutHeight: Int = 0,
     private val bottomSheetHeight: Int = 0,
     private val bottomNavigationHeight: Int = 0,
-    restoreState: Boolean = false
+    restoreState: Boolean = false,
+    val statusBar: View? = null
 ) : LifecycleCallback {
 
     private val callback = FragmentLifecycleMonitor(this)
@@ -50,6 +53,13 @@ abstract class ScrollHelper(
     private val stateResetter = StateResetter(restoreState)
 
     var statusBarHeight: Int = 0
+        set(value) {
+            field = value
+            statusBar?.translationY = -field.toFloat()
+            statusBar?.updateLayoutParams {
+                height = field
+            }
+        }
 
     internal val bottomNavigation by lazy(NONE) {
         findBottomNavigation().apply {
