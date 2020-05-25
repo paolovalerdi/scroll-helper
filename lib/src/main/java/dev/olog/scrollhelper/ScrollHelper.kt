@@ -40,7 +40,8 @@ abstract class ScrollHelper(
     private val bottomSheetHeight: Int = 0,
     private val bottomNavigationHeight: Int = 0,
     restoreState: Boolean = false,
-    val statusBar: View? = null
+    val statusBar: View? = null,
+    val elevation: Int = 0
 ) : LifecycleCallback {
 
     private val callback = FragmentLifecycleMonitor(this)

@@ -1,5 +1,6 @@
 package dev.olog.scrollhelper.recycler.view
 
+import android.os.Build
 import androidx.core.math.MathUtils
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
@@ -17,6 +18,13 @@ internal class RecyclerViewListener(
     // 4) scroll bottomsheet
     // 5) scroll bottom navigation
     override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (recyclerView.canScrollVertically(-1).not()) {
+                scrollHelper.statusBar?.elevation = 0f
+            } else {
+                scrollHelper.statusBar?.elevation = scrollHelper.elevation.toFloat()
+            }
+        }
         onScrolledInternal(recyclerView, dy, false)
     }
 
