@@ -3,9 +3,7 @@ package dev.olog.scrollhelper
 import android.util.SparseArray
 import android.view.View
 import androidx.core.util.forEach
-import androidx.core.view.doOnLayout
 import androidx.core.view.marginBottom
-import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
@@ -39,9 +37,7 @@ abstract class ScrollHelper(
     val tabLayoutHeight: Int = 0,
     private val bottomSheetHeight: Int = 0,
     private val bottomNavigationHeight: Int = 0,
-    restoreState: Boolean = false,
-    val statusBar: View? = null,
-    val elevation: Int = 0
+    restoreState: Boolean = false
 ) : LifecycleCallback {
 
     private val callback = FragmentLifecycleMonitor(this)
@@ -49,18 +45,12 @@ abstract class ScrollHelper(
     internal val fabMap = SparseArray<View>()
     internal val tabLayoutMap = mutableMapOf<Hash, View>()
     internal val toolbarMap = mutableMapOf<Hash, View>()
+    internal val mergedToolbarTabMap = mutableMapOf<Hash, View>()
     private val viewPagerCallbackMap = mutableMapOf<Hash, Any>()
 
     private val stateResetter = StateResetter(restoreState)
 
     var statusBarHeight: Int = 0
-        set(value) {
-            field = value
-            statusBar?.translationY = -field.toFloat()
-            statusBar?.updateLayoutParams {
-                height = field
-            }
-        }
 
     internal val bottomNavigation by lazy(NONE) {
         findBottomNavigation().apply {
@@ -103,6 +93,7 @@ abstract class ScrollHelper(
             activity.supportFragmentManager.unregisterFragmentLifecycleCallbacks(callback)
             fabMap.clear()
             tabLayoutMap.clear()
+            mergedToolbarTabMap.clear()
             toolbarMap.clear()
             viewPagerCallbackMap.clear()
         }
@@ -113,8 +104,9 @@ abstract class ScrollHelper(
         activity.lifecycle.addObserver(lifecycleListener)
     }
 
-    fun updatePeek(navigationHeight: Int) {
-        bottomSheet?.behavior?.peekHeight = bottomSheetHeight + navigationHeight
+    fun updatePeek(navigationBarHeight: Int) {
+        bottomSheet?.behavior?.peekHeight =
+            bottomNavigationHeight + bottomSheetHeight + navigationBarHeight
     }
 
     override fun onFragmentViewCreated(fragment: Fragment) {
@@ -124,6 +116,7 @@ abstract class ScrollHelper(
         val fab = findFab(fragment)
         val toolbar = findToolbar(fragment)
         val tabLayout = findTabLayout(fragment)
+        val mergedToolbarTabLayout = findMergedToolbarTabLayout(fragment)
 
         val secondCap = findSecondCap(tabLayout, toolbar)
         val firstBaseline = findFirstBaseline()
@@ -147,6 +140,9 @@ abstract class ScrollHelper(
             if (toolbar != null) {
                 stateResetter.restore(fragment, toolbar, TOOLBAR_STATE)
                 toolbarMap[hashCode] = toolbar
+            }
+            if (mergedToolbarTabLayout != null) {
+                mergedToolbarTabMap[hashCode] = mergedToolbarTabLayout
             }
         }
 
@@ -191,6 +187,7 @@ abstract class ScrollHelper(
 
             fabMap.remove(hash)
             toolbarMap.remove(hash)
+            mergedToolbarTabMap.remove(hash)
             tabLayoutMap.remove(hash)
 
 //            recyclerView.adapter = null
@@ -218,7 +215,8 @@ abstract class ScrollHelper(
             findToolbar(fragment),
             fabMap[hash],
             bottomSheet?.view,
-            bottomNavigation
+            bottomNavigation,
+            findMergedToolbarTabLayout(fragment)
         )
     }
 
@@ -227,15 +225,18 @@ abstract class ScrollHelper(
         toolbar: View?,
         fab: View?,
         bottomSheet: View?,
-        bottomNavigation: View?
+        bottomNavigation: View?,
+        mergedToolbarTab: View?
     ) {
         tabLayout?.animate()?.translationY(0f)
         toolbar?.animate()?.translationY(0f)
         fab?.animate()?.translationY(0f)
         bottomSheet?.animate()?.translationY(0f)
         bottomNavigation?.animate()?.translationY(0f)
+        mergedToolbarTab?.animate()?.translationY(0f)
     }
 
+    abstract fun findMergedToolbarTabLayout(fragment: Fragment): View?
     abstract fun findTabLayout(fragment: Fragment): View?
     abstract fun findToolbar(fragment: Fragment): View?
 
@@ -304,7 +305,7 @@ abstract class ScrollHelper(
 
     fun hideNavigation(hide: Boolean) {
         if (hide) {
-            val translation = bottomSheetHeight.toFloat()
+            val translation = bottomNavigationHeight.toFloat()
             bottomSheet?.view?.animate()?.translationY(translation)
             bottomNavigation?.animate()?.translationY(translation)
             fabMap.forEach { key, value -> value.animate().translationY(translation) }
