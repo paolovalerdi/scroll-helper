@@ -1,6 +1,5 @@
 package dev.olog.scrollhelper.recycler.view
 
-import android.os.Build
 import androidx.core.math.MathUtils
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
@@ -18,13 +17,6 @@ internal class RecyclerViewListener(
     // 4) scroll bottomsheet
     // 5) scroll bottom navigation
     override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            if (recyclerView.canScrollVertically(-1).not()) {
-                scrollHelper.statusBar?.elevation = 0f
-            } else {
-                scrollHelper.statusBar?.elevation = scrollHelper.elevation.toFloat()
-            }
-        }
         onScrolledInternal(recyclerView, dy, false)
     }
 
@@ -95,6 +87,7 @@ internal class RecyclerViewListener(
     ) {
         val toolbar = scrollHelper.toolbarMap[hashCode]
         val tabLayout = scrollHelper.tabLayoutMap[hashCode]
+        val mergedToolbar = scrollHelper.mergedToolbarTabMap[hashCode]
 
         val maxTop = if (scrollHelper.fullScrollTop) {
             scrollHelper.findSecondCap(tabLayout, toolbar)
@@ -102,41 +95,51 @@ internal class RecyclerViewListener(
             scrollHelper.findFirstCap(tabLayout, toolbar)
         }.toFloat()
 
-        // scroll toolbar
-        if (toolbar != null) {
-            val translation = if (scrollHelper.toolbarHeight < scrollHelper.statusBarHeight) {
-                MathUtils.clamp(
-                    toolbar.translationY - dy,
-                    -((scrollHelper.toolbarHeight.toFloat() + scrollHelper.statusBarHeight) - scrollHelper.tabLayoutHeight),
-                    0f
-                )
-            } else {
-                MathUtils.clamp(
-                    toolbar.translationY - dy,
-                    -scrollHelper.toolbarHeight.toFloat(),
-                    0f
-                )
+        if (mergedToolbar != null) {
+            if (toolbar != null) {
+                val translation = if (scrollHelper.toolbarHeight < scrollHelper.statusBarHeight) {
+                    MathUtils.clamp(
+                        toolbar.translationY - dy,
+                        -((scrollHelper.toolbarHeight.toFloat() + scrollHelper.statusBarHeight) - scrollHelper.tabLayoutHeight),
+                        0f
+                    )
+                } else {
+                    MathUtils.clamp(
+                        toolbar.translationY - dy,
+                        -scrollHelper.toolbarHeight.toFloat(),
+                        0f
+                    )
+                }
+                mergedToolbar.translationY = translation
+                toolbar.translationY = translation
             }
-            scrollHelper.statusBar?.let {
-                val t = MathUtils.clamp(
-                    it.translationY + dy,
-                    -scrollHelper.statusBarHeight.toFloat(),
+           /* if (tabLayout != null) {
+                val translation = MathUtils.clamp(
+                    tabLayout.translationY - dy,
+                    -toolbar?.height?.toFloat()!!,
                     0f
                 )
-                it.translationY = t
+                tabLayout.translationY = translation
+            }*/
+        } else {
+            if (toolbar != null) {
+                val translation = MathUtils.clamp(
+                    toolbar.translationY - dy,
+                    -maxTop,
+                    0f
+                )
+                toolbar.translationY = translation
             }
-            toolbar.translationY = translation
-        }
 
-        // scroll tablayout
-        if (tabLayout != null) {
-            val translation = MathUtils.clamp(
-                tabLayout.translationY - dy,
-                -toolbar?.height?.toFloat()!!,
-                0f
-            )
-            tabLayout.translationY = translation
+            // scroll tablayout
+            if (tabLayout != null) {
+                val translation = MathUtils.clamp(
+                    tabLayout.translationY - dy,
+                    -maxTop,
+                    0f
+                )
+                tabLayout.translationY = translation
+            }
         }
     }
-
 }
