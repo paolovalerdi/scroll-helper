@@ -1,5 +1,6 @@
 package dev.olog.scrollhelper.recycler.view
 
+import android.util.Log
 import androidx.core.math.MathUtils
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
@@ -17,7 +18,13 @@ internal class RecyclerViewListener(
     // 4) scroll bottomsheet
     // 5) scroll bottom navigation
     override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+        Log.d("SCROLL", "Scrolling")
         onScrolledInternal(recyclerView, dy, false)
+    }
+
+    override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+        super.onScrollStateChanged(recyclerView, newState)
+        Log.d("SCROLLING", "Scroll state: $newState")
     }
 
     internal fun onScrolledInternal(
@@ -54,7 +61,7 @@ internal class RecyclerViewListener(
             val translation = MathUtils.clamp(
                 bottomNavigation.translationY + dy,
                 0f,
-                maxBottom
+                maxBottom *2
             )
             bottomNavigation.translationY = translation
         }
@@ -113,14 +120,14 @@ internal class RecyclerViewListener(
                 mergedToolbar.translationY = translation
                 toolbar.translationY = translation
             }
-           /* if (tabLayout != null) {
-                val translation = MathUtils.clamp(
-                    tabLayout.translationY - dy,
-                    -toolbar?.height?.toFloat()!!,
-                    0f
-                )
-                tabLayout.translationY = translation
-            }*/
+            /* if (tabLayout != null) {
+                 val translation = MathUtils.clamp(
+                     tabLayout.translationY - dy,
+                     -toolbar?.height?.toFloat()!!,
+                     0f
+                 )
+                 tabLayout.translationY = translation
+             }*/
         } else {
             if (toolbar != null) {
                 val translation = MathUtils.clamp(

@@ -307,7 +307,7 @@ abstract class ScrollHelper(
         if (hide) {
             val translation = bottomNavigationHeight.toFloat()
             bottomSheet?.view?.animate()?.translationY(translation)
-            bottomNavigation?.animate()?.translationY(translation)
+            bottomNavigation?.animate()?.translationY(translation * 2)
             fabMap.forEach { key, value -> value.animate().translationY(translation) }
         } else {
             bottomSheet?.view?.animate()?.translationY(0f)
